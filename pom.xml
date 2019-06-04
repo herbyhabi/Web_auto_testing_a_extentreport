@@ -59,6 +59,15 @@
             <scope>test</scope>
         </dependency>
 
+        <!--to recognize the text of image -->
+        <dependency>
+            <groupId>net.sourceforge.tess4j</groupId>
+            <artifactId>tess4j</artifactId>
+            <version>3.2.1</version>
+        </dependency>
+
+
+
 
     </dependencies>
 

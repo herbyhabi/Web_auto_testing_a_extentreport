@@ -1,28 +1,33 @@
 package utils;
 
+import com.sun.org.apache.xerces.internal.impl.xpath.XPath;
+import net.sourceforge.tess4j.ITesseract;
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
+import net.sourceforge.tess4j.util.ImageHelper;
 import org.apache.commons.io.FileUtils;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
-import org.openqa.selenium.WebElement;
-import org.testng.annotations.Test;
+import org.openqa.selenium.*;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.lang.Math.abs;
 
 public class Functions extends TestBase {
 
-    String screenshotPath = ".\\screenshot";
+    String screenshotPath = "./screenshot";
+    String imgFilePath = "./test-output/img/img.png";
 
     /**
      * Determine if the element exists
@@ -31,16 +36,31 @@ public class Functions extends TestBase {
      * @author He, ying
      */
 
-    public boolean doesElementExist(WebElement element){
+    public boolean doesElementDisplay(WebElement element){
         TestBase.driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         try{
             element.isDisplayed();
+            return true;
         }catch (NoSuchElementException e){
+            System.out.println("The element is not displayed!!");
             return false;
         }
 
-        return true;
+
     }
+
+    public boolean isElementExist(WebDriver driver, String xpath) {
+        try {
+            WebElement element = driver.findElement(By.xpath(xpath));
+            throw new NoSuchElementException();
+        } catch (NoSuchElementException e) {
+            e.printStackTrace();
+            System.out.println("Element:" + xpath + " is not exist!");
+            return false;
+        }
+    }
+
+
 
     /**
      * to capture the current screenshot
@@ -167,5 +187,83 @@ public class Functions extends TestBase {
             }
         }
     }
+
+
+    /**
+     * Get sub screenshot from a full page screenshot
+     * @param element the target image's element
+     * @throws IOException
+     */
+
+
+    public void getImage(WebElement element) throws IOException{
+        //Get entire page screenshot
+         File screenshot = ((TakesScreenshot)driver).getScreenshotAs(OutputType.FILE);
+         BufferedImage fullImg = ImageIO.read(screenshot);
+
+         //Get the location of element on the page
+         Point point = element.getLocation();
+
+         //Get width and height of the element
+        int eleWidth = element.getSize().getWidth();
+        int eleHeight = element.getSize().getHeight();
+
+        //Crop the entire page screenshot to get only element screenshot
+        BufferedImage eleScreenshot = fullImg.getSubimage(point.getX(),point.getY(),eleWidth,eleHeight);
+        ImageIO.write(eleScreenshot,"png",screenshot);
+
+
+        //Copy the element screenshot
+        File screenshotLocation = new File(imgFilePath);
+        FileUtils.copyFile(screenshot,screenshotLocation);
+
+        //将图片二值化
+        BufferedImage grayImage = ImageHelper.convertImageToBinary(ImageIO.read(screenshotLocation));
+        ImageIO.write(grayImage,"png", screenshotLocation);
+    }
+
+
+    /**
+     * to obtain the content of image, just english and number
+     * @return
+     * @throws TesseractException
+     */
+
+    public String getImgContent() throws TesseractException {
+
+        String code = "";
+
+        ITesseract instance = new Tesseract();
+        instance.setLanguage("eng");
+        //File tessDataFolder = LoadLibs.extractNativeResources("tessdata");
+        //instance.setDatapath(tessDataFolder.getAbsolutePath());
+
+        File imgDir = new File(imgFilePath);
+        code = instance.doOCR(imgDir);
+//        System.out.println(code);
+
+        //remove all whitespace and some specific characters from the string
+        code = code.replaceAll(" ", "");
+
+        String regEx="[\n`~!@#$%^&*()+=|{}':;',\\[\\].<>/?~！@#￥%……&*（）——+|{}【】‘；：”“’。， 、？]";
+        String aa = "";//这里是将特殊字符换为aa字符串,""代表直接去掉
+        Pattern p = Pattern.compile(regEx);
+        Matcher m = p.matcher(code);//这里把想要替换的字符串传进来
+        code= m.replaceAll(aa).trim();
+        System.out.println(code);
+
+        return code;
+    }
+
+
+    public List<String> getCurrentPageInfo(){
+        List<String> list=new ArrayList<String>();
+        list.add(driver.getCurrentUrl());
+        list.add(driver.getTitle());
+        return list;
+
+    }
+
+
 
 }

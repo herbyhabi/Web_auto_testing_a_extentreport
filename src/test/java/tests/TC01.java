@@ -1,18 +1,24 @@
 package tests;
 
-import org.mockito.Mockito;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 import pages.BasicPage;
-import utilities.Log;
+import pages.LoginPage;
+import sun.awt.windows.ThemeReader;
 import utils.CustomizeAssertion;
 import utils.CustomizeFunctions;
+import utils.Functions;
 import utils.TestBase;
+
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class TC01 extends TestBase {
     BasicPage basicPage;
     CustomizeFunctions customizeFunctions;
     CustomizeAssertion customizeAssertion;
+    Functions functions;
+    LoginPage loginPage;
+
 
     @Test
     public void verify_TC01() throws Exception {
@@ -20,15 +26,41 @@ public class TC01 extends TestBase {
         basicPage = new BasicPage();
         customizeFunctions = new CustomizeFunctions();
         customizeAssertion = new CustomizeAssertion();
+        functions = new Functions();
+        loginPage = new LoginPage();
 
-        driver.get("https://www.baidu.com/");
+        String chooseCompanyPageTitle = "选择公司";
 
-        Log.info("Step 1: Enter keywords into search field");
-        customizeFunctions.input(basicPage.inputOfSearch,"Automation test","Enter a keywords");
-        customizeAssertion.assertTrue(true,"verify it is true");
+        driver.get("http://172.16.3.155/main/login");
 
-        Log.info("Step 2: Click on Submit button");
-        customizeFunctions.click(basicPage.btnOfSubmit,"Click on submit button");
+        customizeFunctions.input(loginPage.listOfInput.get(0),"13777842891","Fill in the username");
+        customizeFunctions.input(loginPage.listOfInput.get(1),"znqt123","Fill in the password");
+
+        functions.getImage(loginPage.img);
+        String content = functions.getImgContent();
+        customizeFunctions.input(loginPage.listOfInput.get(2),content,"Fill in the verification code");
+        customizeFunctions.click(loginPage.btnOfLogin,"Click on login button");
+
+        for(int i =0; i<10; i++){
+            Thread.sleep(2000);
+            List<String> list = functions.getCurrentPageInfo();
+            if(! list.get(1).equals(chooseCompanyPageTitle)){
+            customizeFunctions.click(loginPage.img, "update the verification image");
+            functions.getImage(loginPage.img);
+            content = functions.getImgContent();
+
+            customizeFunctions.click(loginPage.listOfInput.get(2),"");
+            loginPage.listOfInput.get(2).clear();
+            customizeFunctions.input(loginPage.listOfInput.get(2),content,"");
+            customizeFunctions.click(loginPage.btnOfLogin,"");
+
+            }
+            else{
+                break;
+            }
+        }
+
+        Thread.sleep(3000);
 
         eventualAssert();
 
